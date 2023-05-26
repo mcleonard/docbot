@@ -1,8 +1,12 @@
 # DocBot
 
-This a bot that leverages cool new AI things to answer questions. It's mostly intended to use technical documentation, but it can honestly answer most things. It is able to search the internet for resources and collect information from multiple sources into one coherent answer. It's mostly a demonstration of using LangChain and Deep Lake, could be turned into something much nicer.
+This a Streamlit app that leverages cool new AI things to answer questions. It searches the internet for resources and collects information from multiple sources into one coherent answer. It uses a [Deep Lake vector store](https://docs.activeloop.ai) as a knowledge base and LangChain to interact with GPT-3 for searching the internet and the knowledge base to answer questions.
 
-It works by storing resources fetched from the internet (Google searches) in a [Deep Lake vector store](https://docs.activeloop.ai), given a question. It queries the vector store using your question and sends relevant documents to GPT-3 to collect and summarize an answer.
+## DocBot Design
+
+This bot consists of two systems. One system searches the internet for resources such as documentation, blog posts, and tutorials relevant to your question then stores them in a Deep Lake vector store. This vector store becomes a knowledge base for your work and life. This system uses `GPT-3.5-Turbo` to refine the searches and better understand which resources are relevant to you.
+
+The other system queries the vector store for documents relevant to your question and uses GPT-3 to extract information from each of those documents and combines the information into one well-informed answer.
 
 ## Installation
 
@@ -25,7 +29,7 @@ You'll need Python 3.10 or greater. You'll also need an [OpenAI API key](https:/
 export OPENAI_API_KEY=<your key here>
 ```
 
-or in a file called `.env` in the same directory as the `docbot.py` script:
+or in a file called `.env` in the same directory as the `app.py` script:
 ```
 OPENAI_API_KEY=<your_key_here>
 ```
@@ -33,10 +37,8 @@ OPENAI_API_KEY=<your_key_here>
 ## Usage
 Run it with Poetry:
 ```
-poetry run python docbot.py
+poetry run streamlit run app.py
 ```
-
-then follow the prompts.
 
 
 

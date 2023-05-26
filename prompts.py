@@ -1,12 +1,10 @@
-from langchain.prompts.chat import (
-    ChatPromptTemplate,
-    HumanMessagePromptTemplate,
-)
+from langchain.prompts.chat import HumanMessagePromptTemplate
+
 
 search_phrase_message = HumanMessagePromptTemplate.from_template(
     """
-A user is attempting to answer a question using technical documentation
-and other resources found on the internet. You will return a phrase that
+A user is attempting to answer a question using documentation, blog posts,
+tutorials, and other resources found on the internet. You will return a phrase that
 can be used in a search engine to find references to answer the question.
 
 Question: {question}
@@ -16,7 +14,7 @@ The search phrase:
 
 link_filter_message = HumanMessagePromptTemplate.from_template(
     """
-From the following Markdown content, please return the five most relevant links for
+From the following Markdown content, please return the most relevant links for
 answering the user's question. Leave out any YouTube videos.
 
 Markdown: {markdown}
@@ -26,22 +24,21 @@ URLs:
 """
 )
 
-chat_prompt = ChatPromptTemplate.from_messages([search_phrase_message])
 
-question_prompt_template = """You are a bot that uses technical documentation and
-similar resources to answer questions. Use this section of the documents to answer the 
-user's question, if the text is related to the question:
+question_prompt_template = """You are a bot that uses documentation, blog posts,
+tutorials, and other resources to answer questions. Use this section of the documents
+to answer the user's question, if the text is related to the question:
 {context}
 Question: {question}
-Please include any code that is relevant to the answer.
 Relevant text, if any:"""
 
 
-combine_prompt_template = """Given the following summaries from documentation and other 
-resources, collect them into one combined answer for the user's question. Include 
-code if relevant. If you don't have a good answer, just say that you don't know.
+combine_prompt_template = """Given the following summaries from Markdown documents, 
+collect them into one combined answer for the user's question.  If you don't have a 
+good answer, just say that you don't know.
 Summaries:
 {summaries}
 Question: {question}
-Combined answer, if any:
+Combined answer, as Markdown. If there is code, format it correctly, and escape 
+symbols like $ appropriately:
 """
