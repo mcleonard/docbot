@@ -28,18 +28,18 @@ URLs:
 
 chat_prompt = ChatPromptTemplate.from_messages([search_phrase_message])
 
-question_prompt_template = """You are a help bot for an open source software community.
-Use this section of the documentation to answer a user's question, if the text is 
-related to the question:
+question_prompt_template = """You are a bot that uses technical documentation and
+similar resources to answer questions. Use this section of the documents to answer the 
+user's question, if the text is related to the question:
 {context}
 Question: {question}
-Please include any Python code that is relevant to the answer.
+Please include any code that is relevant to the answer.
 Relevant text, if any:"""
 
 
-combine_prompt_template = """Given the following summaries from the framework 
-documentation, collect them into one combined answer for the user's question. Include 
-Python code if relevant. If you don't have a good answer, just say that you don't know.
+combine_prompt_template = """Given the following summaries from documentation and other 
+resources, collect them into one combined answer for the user's question. Include 
+code if relevant. If you don't have a good answer, just say that you don't know.
 Summaries:
 {summaries}
 Question: {question}
