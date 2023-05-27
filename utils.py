@@ -4,6 +4,13 @@ from bs4 import BeautifulSoup
 from markdownify import markdownify as md
 
 
+def replace_multiple_newlines(string):
+    pattern = r"\n{2,}"
+    replacement = "\n"
+    result = re.sub(pattern, replacement, string)
+    return result
+
+
 def html_as_markdown(html: str):
     soup = BeautifulSoup(html, "html.parser")
 
@@ -21,4 +28,4 @@ def html_as_markdown(html: str):
         # Remove tags
         data.decompose()
 
-    return md(soup.body.text) if soup.body else None
+    return replace_multiple_newlines(md(soup.body.text)) if soup.body else None

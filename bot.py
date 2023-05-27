@@ -46,15 +46,14 @@ def build_qa(vector_store, llm):
 
 class Bot:
     def __init__(self):
-        self.llm = OpenAI(temperature=0.2, max_tokens=2046)
-        self.chat = ChatOpenAI(temperature=0.2)
+        self.chat = ChatOpenAI(temperature=0.5)
         self.embeddings = OpenAIEmbeddings()
         self.db = DeepLake(
             dataset_path="./datalake/",
             embedding_function=self.embeddings,
             verbose=False,
         )
-        self.qa_chain = build_qa(self.db, self.llm)
+        self.qa_chain = build_qa(self.db, self.chat)
         self.markdown_splitter = MarkdownTextSplitter(chunk_size=1000, chunk_overlap=20)
         self.messages = []
 
@@ -64,7 +63,6 @@ class Bot:
         except Exception as e:
             print(e)
             return 0
-        print(docs)
         docs = [d for d in docs if d[1] < 0.6]
         return len(docs)
 
@@ -106,13 +104,13 @@ class Bot:
             docs = self.markdown_splitter.create_documents(
                 [mdown], metadatas=[{"source": url}]
             )
-            self.db.add_documents(docs, verbose=False)
+            self.db.add_documents(docs, progressbar=False)
         return True
 
     def add_human_message(self, text):
         self.messages.append(
             HumanMessage(
-                content="That's not quite what I want. Please search for more resources."
+                content=text
             )
         )
 
