@@ -15,11 +15,11 @@ The search phrase:
 link_filter_message = HumanMessagePromptTemplate.from_template(
     """
 From the following Markdown content, please return the most relevant links for
-answering the user's question. Leave out any YouTube videos.
+answering the user's question.
 
 Markdown: {markdown}
 
-Return only the URLs without bullets, one on each line.
+Return full URLs that link to articles or documentation, but leave out links to YouTube.
 URLs:
 """
 )
@@ -39,6 +39,7 @@ good answer, just say that you don't know.
 Summaries:
 {summaries}
 Question: {question}
-Combined answer, as Markdown. If there is code, format it correctly, and escape 
-symbols like $ appropriately:
+Return the combined answer, as Markdown. If there is code, format it correctly, and 
+escape symbols like $ appropriately. Also, include links if available.
+Answer:
 """

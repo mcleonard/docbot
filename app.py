@@ -1,36 +1,64 @@
+import os
+
 import streamlit as st
 
 from bot import Bot
 
+if "do_search" not in st.session_state:
+    st.session_state["do_search"] = False
+
+
+@st.cache_resource
+def load_bot(openai_key: str | None, temperature: float):
+    return Bot(
+        st,
+        openai_key=openai_key,
+        temperature=temperature,
+        debug=os.environ.get("DEBUG", False),
+    )
+
+
+### Sidebar ###
+openai_key = st.sidebar.text_input("OpenAI API KEY", type="password")
+temperature = st.sidebar.slider("Temperature", min_value=0.0, max_value=1.0, value=0.2)
+
+
+### Main Content ###
+bot = load_bot(openai_key, temperature)
+
 st.title("All Your Questions Answered")
 
-bot = Bot()
 
 st.write(
     "Hello, I'm your friendly help bot. Ask me a question! If I need more "
-    "knowledge to give you a good answer, I'll search the internet for more "
+    "knowledge to give you a good answer, I'll search the internet for "
     "information."
 )
 
 question = st.text_input("Your question...")
-do_search = False
 
 if question:
     n_docs = bot.check_vectordb(question)
 
-    if n_docs < 4 or do_search:
-        if do_search:
+    if n_docs < 4 or st.session_state.do_search:
+        if st.session_state.do_search:
             bot.add_human_message(
-                "That's not quite what I was looking for. Please retrieve more resources you can use to answer my question."
+                "That's not quite what I was looking for. Refine the search phrase to find more specific resources you can use to answer my question."
             )
         with st.spinner("Searching the internet for more resources..."):
             search_phrase = bot.generate_search_phrase(question)
             bot.fetch_resources(search_phrase)
+            st.session_state.do_search = False
 
     with st.spinner("Searching the knowledge base, one second..."):
-        answer = bot.qa_chain.run(question)
+        answer = bot.qa_run(question)
 
     st.divider()
     st.markdown(answer)
 
-do_search = st.button("Search for more resources")
+
+def force_search():
+    st.session_state.do_search = True
+
+
+search_button = st.button("Search for more resources", on_click=force_search)

@@ -6,7 +6,6 @@ import requests
 from langchain.chains import RetrievalQA
 from langchain.chat_models import ChatOpenAI
 from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.llms import OpenAI
 from langchain.prompts import PromptTemplate
 from langchain.schema import HumanMessage, AIMessage
 from langchain.text_splitter import MarkdownTextSplitter
@@ -45,8 +44,22 @@ def build_qa(vector_store, llm):
 
 
 class Bot:
-    def __init__(self):
-        self.chat = ChatOpenAI(temperature=0.5)
+    def __init__(
+        self,
+        streamlit,
+        openai_key=None,
+        temperature=0.5,
+        max_message_tokens=3000,
+        similiarity_score_threshold=0.6,
+        debug=False
+    ):
+        self.streamlit = streamlit
+        self.max_message_tokens = max_message_tokens
+        self.similarity_score_threshold = similiarity_score_threshold
+        self.debug = debug
+        
+
+        self.chat = ChatOpenAI(openai_api_key=openai_key, temperature=temperature)
         self.embeddings = OpenAIEmbeddings()
         self.db = DeepLake(
             dataset_path="./datalake/",
@@ -63,16 +76,27 @@ class Bot:
         except Exception as e:
             print(e)
             return 0
-        docs = [d for d in docs if d[1] < 0.6]
+        docs = [d for d in docs if d[1] < self.similarity_score_threshold]
         return len(docs)
+
+    def _prune_messages(self):
+        while (
+            self.chat.get_num_tokens_from_messages(self.messages)
+            > self.max_message_tokens
+        ):
+            self.messages.pop(0)
+
+    def _run_model(self):
+        self._prune_messages()
+        response = self.chat(self.messages)
+        self.messages.append(AIMessage(content=response.content))
+        return response
 
     def generate_search_phrase(self, question):
         self.messages.extend(search_phrase_message.format_messages(question=question))
-        response = self.chat(self.messages)
-        self.messages.append(AIMessage(content=response.content))
-
+        response = self._run_model()
         search_phrase = response.content.replace('"', "")
-
+        self.streamlit.write(search_phrase) if self.debug else None
         return search_phrase
 
     def fetch_resources(self, search_phrase):
@@ -82,11 +106,12 @@ class Bot:
         as_markdown = html_as_markdown(response.content)
 
         self.messages.extend(link_filter_message.format_messages(markdown=as_markdown))
-        response = self.chat(self.messages)
+        response = self._run_model()
 
-        # Okay, now we have URLs to resources. Let's fetch them all and store them in our
-        # document store
+        # Okay, now we have URLs to resources. Let's fetch them all and store them in
+        # the document store
         urls = re.findall("https?://[^\s]+", response.content)
+        self.streamlit.write(urls) if self.debug else None
         for url in urls:
             try:
                 resp = requests.get(url)
@@ -100,52 +125,21 @@ class Bot:
             if mdown is None:
                 continue
 
-            print(f"Saving reference documentation at {url} in Deep Lake store.\n\n")
             docs = self.markdown_splitter.create_documents(
                 [mdown], metadatas=[{"source": url}]
             )
+            self.streamlit.write(f"Adding resource from {url}") if self.debug else None
             self.db.add_documents(docs, progressbar=False)
         return True
 
+    def qa_run(self, question: str):
+        self.add_human_message(
+            f"I'm going to give you a bunch of documents so you can answer my question. Again, here's the question: {question}"
+        )
+        self._prune_messages()
+        answer = self.qa_chain.run(question)
+        self.messages.append(AIMessage(content=answer))
+        return answer
+
     def add_human_message(self, text):
-        self.messages.append(
-            HumanMessage(
-                content=text
-            )
-        )
-
-
-if __name__ == "__main__":
-    messages = []
-    bot = Bot()
-    while True:
-        question = input(
-            "\nI am your friendly documentation bot. Please ask a question, I'll do my best to answer.\n\n> "
-        )
-        fetch_question = input(
-            "Should I fetch resources before answering? [Yes/yes/Y/y, No/N/no/n]\n\n> "
-        )
-        if fetch_question.lower().startswith("y"):
-            bot.fetch_resources(question)
-
-        print("One second, thinking...\n")
-
-        # This queries the vector store for relevant documents, then passes them to the
-        # LLM along with the user's question to answer.
-        answer = bot.qa_chain.run(question)
-
-        print(answer + "\n\n")
-        bot.messages.append(AIMessage(content=answer))
-
-        fetch_question = input(
-            "Should I fetch resources and try again? [Yes/yes/Y/y, No/N/no/n]\n\n> "
-        )
-        if fetch_question.lower().startswith("y"):
-            messages.append(
-                HumanMessage(
-                    content="That's not quite what I want. Please search for more resources."
-                )
-            )
-            bot.fetch_resources(question, messages)
-            answer = bot.qa_chain.run(question)
-            print(answer + "\n\n")
+        self.messages.append(HumanMessage(content=text))
