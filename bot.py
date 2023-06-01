@@ -48,27 +48,30 @@ class Bot:
         self,
         streamlit,
         openai_key=None,
-        temperature=0.5,
+        dataset_path=None,
+        temperature=0.2,
         max_message_tokens=3000,
         similiarity_score_threshold=0.6,
-        debug=False
+        debug=False,
     ):
         self.streamlit = streamlit
         self.max_message_tokens = max_message_tokens
         self.similarity_score_threshold = similiarity_score_threshold
         self.debug = debug
-        
 
         self.chat = ChatOpenAI(openai_api_key=openai_key, temperature=temperature)
         self.embeddings = OpenAIEmbeddings()
         self.db = DeepLake(
-            dataset_path="./datalake/",
+            dataset_path="./datalake/" if dataset_path is None else dataset_path,
             embedding_function=self.embeddings,
             verbose=False,
         )
         self.qa_chain = build_qa(self.db, self.chat)
         self.markdown_splitter = MarkdownTextSplitter(chunk_size=1000, chunk_overlap=20)
         self.messages = []
+
+        if self.debug:
+            self.db.ds.summary()
 
     def check_vectordb(self, question):
         try:

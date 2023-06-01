@@ -9,7 +9,9 @@ if "do_search" not in st.session_state:
 
 
 @st.cache_resource
-def load_bot(openai_key: str | None, temperature: float):
+def load_bot(
+    openai_key: str | None, dataset_path: str | None = None, temperature: float = 0.2
+):
     return Bot(
         st,
         openai_key=openai_key,
@@ -19,12 +21,17 @@ def load_bot(openai_key: str | None, temperature: float):
 
 
 ### Sidebar ###
-openai_key = st.sidebar.text_input("OpenAI API KEY", type="password")
+openai_key = st.sidebar.text_input("OpenAI API Key", type="password")
+dataset_path = st.sidebar.text_input("Dataset path")
+activeloop_token = st.sidebar.text_input("Activeloop Token", type="password")
+st.sidebar.divider()
 temperature = st.sidebar.slider("Temperature", min_value=0.0, max_value=1.0, value=0.2)
 
+if activeloop_token:
+    os.environ["ACTIVELOOP_TOKEN"] = activeloop_token
 
 ### Main Content ###
-bot = load_bot(openai_key, temperature)
+bot = load_bot(openai_key, dataset_path, temperature)
 
 st.title("All Your Questions Answered")
 
